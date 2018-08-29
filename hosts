@@ -1,0 +1,13 @@
+[eos]
+26-spine1 ansible_host=127.0.0.1 ansible_port=20001 api_port=21001 os=eos ansible_ssh_user=root ansible_ssh_private_key_file=/home/rudostiv/Arista/.vagrant/machines/26-spine1/virtualbox/private_key
+26-spine2 ansible_host=127.0.0.1 ansible_port=20002 api_port=21002 os=eos ansible_ssh_user=root ansible_ssh_private_key_file=/home/rudostiv/Arista/.vagrant/machines/26-spine2/virtualbox/private_key
+r6-leaf1  ansible_host=127.0.0.1 ansible_port=20003 api_port=21003 os=eos ansible_ssh_user=root ansible_ssh_private_key_file=/home/rudostiv/Arista/.vagrant/machines/r6-leaf1/virtualbox/private_key
+r6-leaf2  ansible_host=127.0.0.1 ansible_port=20004 api_port=21004 os=eos ansible_ssh_user=root ansible_ssh_private_key_file=/home/rudostiv/Arista/.vagrant/machines/r6-leaf2/virtualbox/private_key
+r6-leaf3  ansible_host=127.0.0.1 ansible_port=20005 api_port=21005 os=eos ansible_ssh_user=root ansible_ssh_private_key_file=/home/rudostiv/Arista/.vagrant/machines/r6-leaf3/virtualbox/private_key
+
+
+###[ubuntu]
+##nms ansible_host=127.0.0.1 ansible_port=2204 ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/alex/Documents$
+
+## [cumulus]
+## oob-mgmt-sw ansible_host=127.0.0.1 ansible_port=20010 ansible_ssh_user=vagrant ansible_ssh_private_key_file=/home/alex$
