@@ -1,0 +1,93 @@
+! Command: show running-config
+! device: r6-spine1 (vEOS, EOS-4.20.1F)
+!
+! boot system flash:/vEOS-lab.swi
+!
+event-handler dhclient
+   trigger on-boot
+   action bash sudo /mnt/flash/initialize_ma1.sh
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model multi-agent
+!
+hostname r6-spine1
+!
+spanning-tree mode mstp
+!
+aaa authorization exec default local
+!
+aaa root secret sha512 $6$fMtBsrCYunRgfDsI$nEuMXxG7oUDiLLJy7fwgUQePHJXaOARRayQEy7aq7auoLpySrPk8Yfz.FWKqu6VXDpvunucrkY/qEWXXCjhQD1
+!
+username admin privilege 15 role network-admin secret sha512 $6$wMvqs9C/8CHj82f0$2DdXwpuJIx5.kRAPfbSlWI2ed2og4hMVueJGD2NREEeWhVwBpvvgmOkkRE0q.mpmrFtJ0OBbFzMHB2hP5d9o20
+username vagrant privilege 15 role network-admin secret sha512 $6$Qbm5/bSIXoCJIP12$MrbQJz01EiC3mwtyUYu2gRc2yCAxEP6mZFd/7uupsJzr90.OgRm5PR6J.Rl4GK5olf8aksNJZKPi.esBG7gDG0
+!
+interface Ethernet1
+   description L3 to r6-leaf1
+   no switchport
+   ip address 10.10.10.11/31
+!
+interface Ethernet2
+   description L3 to r6-leaf2
+   no switchport
+   ip address 10.10.10.9/31
+!
+interface Ethernet3
+   description L3 to r6-leaf3
+   no switchport
+   ip address 10.10.10.1/31
+!
+interface Ethernet4
+!
+interface Loopback1
+   description Router ID
+   ip address 192.168.2.2/32
+!
+interface Management1
+   ip address 10.0.2.15/24
+!
+ip routing
+!
+router bgp 65100
+   router-id 192.168.2.2
+   no bgp default ipv4-unicast
+   neighbor 10.10.10.0 remote-as 65102
+   neighbor 10.10.10.0 send-community extended
+   neighbor 10.10.10.0 maximum-routes 12000
+   neighbor 10.10.10.8 remote-as 65101
+   neighbor 10.10.10.8 send-community extended
+   neighbor 10.10.10.8 maximum-routes 12000
+   neighbor 10.10.10.10 remote-as 65101
+   neighbor 10.10.10.10 send-community extended
+   neighbor 10.10.10.10 maximum-routes 12000
+   neighbor 192.168.1.1 remote-as 65101
+   neighbor 192.168.1.1 update-source Loopback1
+   neighbor 192.168.1.1 ebgp-multihop
+   neighbor 192.168.1.1 send-community extended
+   neighbor 192.168.1.1 maximum-routes 12000
+   neighbor 192.168.1.2 remote-as 65101
+   neighbor 192.168.1.2 update-source Loopback1
+   neighbor 192.168.1.2 ebgp-multihop
+   neighbor 192.168.1.2 send-community extended
+   neighbor 192.168.1.2 maximum-routes 12000
+   neighbor 192.168.1.3 remote-as 65102
+   neighbor 192.168.1.3 update-source Loopback1
+   neighbor 192.168.1.3 ebgp-multihop
+   neighbor 192.168.1.3 send-community extended
+   neighbor 192.168.1.3 maximum-routes 12000
+   !
+   address-family evpn
+      neighbor 192.168.1.1 activate
+      neighbor 192.168.1.2 activate
+      neighbor 192.168.1.3 activate
+   !
+   address-family ipv4
+      neighbor 10.10.10.0 activate
+      neighbor 10.10.10.8 activate
+      neighbor 10.10.10.10 activate
+      network 192.168.2.2/32
+!
+management api http-commands
+   no shutdown
+!
+end

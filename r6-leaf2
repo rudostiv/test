@@ -1,0 +1,134 @@
+! Command: show running-config
+! device: r6-leaf2 (vEOS, EOS-4.20.1F)
+!
+! boot system flash:/vEOS-lab.swi
+!
+event-handler dhclient
+   trigger on-boot
+   action bash sudo /mnt/flash/initialize_ma1.sh
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model multi-agent
+!
+hostname r6-leaf2
+!
+spanning-tree mode mstp
+no spanning-tree vlan 4094
+!
+aaa authorization exec default local
+!
+aaa root secret sha512 $6$pqOvzM/vZlla7/NN$ZxpNoz5Z/2Sz8BJUjDA7.8pZwQ3iFXeYTXAzW.MCOFjTA/Bq0paTg8v.NCpMneQIvXg0z6FEkjVXMjYez/lPq/
+!
+username admin privilege 15 role network-admin secret sha512 $6$ZW8b4NUPXdH4R3TJ$0kCbralrQj1Uyv06LV/3j7V0ro9zaP.YywerRgjmYXIzMyEJIUTHwrfOv.Unh2i.iAc0LbdytR1.VSk/LMTwK.
+username vagrant privilege 15 role network-admin secret sha512 $6$1N/95NzodCbkXW5O$wqtFpt/4Z07qu9frKP19uijSMuREfm0F/HKjPWAU2e4SWviLoqMAWoiuW3geNM.BelW66Yl6FLqXP.b.cpqfM1
+!
+vlan 4094
+   trunk group mlagpeer
+!
+vrf definition RED
+!
+interface Port-Channel10
+   description MLAG peer link to r6-leaf1
+   switchport mode trunk
+   switchport trunk group mlagpeer
+!
+interface Ethernet1
+   description L3 to r6-spine1
+   no switchport
+   ip address 10.10.10.8/31
+!
+interface Ethernet2
+   description L3 to r6-spine2
+   no switchport
+   ip address 10.10.10.4/31
+!
+interface Ethernet3
+   description MALG peer to r6-leaf1
+   channel-group 10 mode active
+!
+interface Ethernet4
+   description MALG peer to r6-leaf1
+   channel-group 10 mode active
+!
+interface Loopback1
+   description router ID
+   ip address 192.168.1.2/32
+!
+interface Loopback2
+   description VTEP
+   ip address 1.1.1.2/32
+!
+interface Management1
+   ip address 10.0.2.15/24
+!
+interface Vlan11
+   description vrf RED
+   no autostate
+   vrf forwarding RED
+   ip address 192.168.101.1/24
+!
+interface Vlan4094
+   description MLAG r6-leaf1
+   ip address 10.0.0.0/31
+!
+interface Vxlan1
+   vxlan source-interface Loopback2
+   vxlan udp-port 4789
+   vxlan vlan 11 vni 1011
+   vxlan vrf RED vni 1000
+!
+ip routing
+ip routing vrf RED
+!
+mlag configuration
+   domain-id mlag1
+   local-interface Vlan4094
+   peer-address 10.0.0.1
+   peer-link Port-Channel10
+!
+router bgp 65101
+   router-id 192.168.1.2
+   no bgp default ipv4-unicast
+   neighbor 10.10.10.5 remote-as 65100
+   neighbor 10.10.10.5 send-community extended
+   neighbor 10.10.10.5 maximum-routes 12000
+   neighbor 10.10.10.9 remote-as 65100
+   neighbor 10.10.10.9 send-community extended
+   neighbor 10.10.10.9 maximum-routes 12000
+   neighbor 192.168.2.1 remote-as 65100
+   neighbor 192.168.2.1 update-source Loopback1
+   neighbor 192.168.2.1 send-community extended
+   neighbor 192.168.2.1 maximum-routes 12000
+   neighbor 192.168.2.2 remote-as 65100
+   neighbor 192.168.2.2 update-source Loopback1
+   neighbor 192.168.2.2 send-community extended
+   neighbor 192.168.2.2 maximum-routes 12000
+   !
+   vlan 11
+      rd 1.1.1.2:1011
+      route-target both 1011:1011
+      redistribute learned
+   !
+   address-family evpn
+      neighbor 192.168.2.1 activate
+      neighbor 192.168.2.2 activate
+   !
+   address-family ipv4
+      neighbor 10.10.10.5 activate
+      neighbor 10.10.10.9 activate
+      network 1.1.1.2/32
+      network 192.168.1.2/32
+   !
+   vrf RED
+      rd 1.1.1.2:1000
+      network 192.168.101.0/24
+      !
+      address-family ipv4
+         route-target import 1000:1000
+         route-target export 1000:1000
+!
+management api http-commands
+   no shutdown
+!
+end

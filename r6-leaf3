@@ -1,0 +1,126 @@
+! Command: show running-config
+! device: r6-leaf3 (vEOS, EOS-4.20.1F)
+!
+! boot system flash:/vEOS-lab.swi
+!
+event-handler dhclient
+   trigger on-boot
+   action bash sudo /mnt/flash/initialize_ma1.sh
+!
+transceiver qsfp default-mode 4x10G
+!
+service routing protocols model multi-agent
+!
+hostname r6-leaf3
+!
+spanning-tree mode mstp
+!
+aaa authorization exec default local
+!
+aaa root secret sha512 $6$UXFbSY4oOywuUq01$xt0ZdMAoUOb64sRxG4d9Dgl8cwkqRQzNhYBvSdCOsX5VOYplC9VcHgHeszfmAAGE9HVHexk3LRkL8qQTcbSqZ1
+!
+username admin privilege 15 role network-admin secret sha512 $6$KTLtxKSxLG8OJggD$PhFMgOk.XLm2pguhm6qaBqQmmL4CAwQJx/CpPuaHH4G5nlazu3YjiAqLup54WMVjETgCh.1EyUGvqZCtShSQj0
+username vagrant privilege 15 role network-admin secret sha512 $6$qthm6G.5Oe//OhGE$1dcCbGgQktMlSNQN37YiSmMTK7IENVgc7sNde6aclbQq8IWXfBnCGgvP2FzFPQSRgEwNg3wtyxvvZZBwSkw0a0
+!
+vrf definition RED
+!
+interface Ethernet1
+!
+interface Ethernet2
+!
+interface Ethernet3
+   description L3 to r6-spine1
+   no switchport
+   ip address 10.10.10.0/31
+!
+interface Ethernet4
+   description L3 to r6-spine2
+   no switchport
+   ip address 10.10.10.2/31
+!
+interface Loopback1
+   description Router ID
+   ip address 192.168.1.3/32
+!
+interface Loopback2
+   description VTEP
+   ip address 1.1.1.3/32
+!
+interface Management1
+   ip address 10.0.2.15/24
+!
+interface Vlan1
+!
+interface Vlan10
+   description LAN
+   no autostate
+   vrf forwarding RED
+   ip address 192.168.99.1/24
+!
+interface Vlan11
+   description vrf RED
+   no autostate
+   vrf forwarding RED
+   ip address 192.168.101.1/24
+!
+interface Vxlan1
+   vxlan source-interface Loopback2
+   vxlan udp-port 4789
+   vxlan vlan 10 vni 1010
+   vxlan vlan 11 vni 1011
+   vxlan vrf RED vni 1000
+!
+ip routing
+ip routing vrf RED
+!
+router bgp 65102
+   router-id 192.168.1.3
+   no bgp default ipv4-unicast
+   neighbor 10.10.10.1 remote-as 65100
+   neighbor 10.10.10.1 send-community extended
+   neighbor 10.10.10.1 maximum-routes 12000
+   neighbor 10.10.10.3 remote-as 65100
+   neighbor 10.10.10.3 send-community extended
+   neighbor 10.10.10.3 maximum-routes 12000
+   neighbor 192.168.2.1 remote-as 65100
+   neighbor 192.168.2.1 update-source Loopback1
+   neighbor 192.168.2.1 send-community extended
+   neighbor 192.168.2.1 maximum-routes 12000
+   neighbor 192.168.2.2 remote-as 65100
+   neighbor 192.168.2.2 update-source Loopback1
+   neighbor 192.168.2.2 send-community extended
+   neighbor 192.168.2.2 maximum-routes 12000
+   !
+   vlan 10
+      rd 1.1.1.3:1010
+      route-target both 1010:1010
+      redistribute learned
+   !
+   vlan 11
+      rd 1.1.1.3:1011
+      route-target both 1011:1011
+      redistribute learned
+   !
+   address-family evpn
+      neighbor 192.168.2.1 activate
+      neighbor 192.168.2.2 activate
+   !
+   address-family ipv4
+      neighbor 10.10.10.1 activate
+      neighbor 10.10.10.3 activate
+      network 1.1.1.3/32
+      network 192.168.1.3/32
+   !
+   vrf RED
+      rd 1.1.1.3:1000
+      network 192.168.99.0/24
+      network 192.168.101.0/24
+      !
+      address-family ipv4
+         route-target import 1000:1000
+         route-target export 1000:1000
+!
+management api http-commands
+   no shutdown
+!
+end
